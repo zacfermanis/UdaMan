@@ -13,6 +13,7 @@
     "generate-favicon": "node scripts/generate-favicon.js"
   },
   "dependencies": {
+    "@zacfermanis/memory-bank": "^2.2.5",
     "next": "15.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
