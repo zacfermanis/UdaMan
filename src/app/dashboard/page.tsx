@@ -175,6 +175,20 @@ export default function DashboardPage() {
                   <div className="text-sm text-blue-700 dark:text-blue-300">Update your account information</div>
                 </button>
                 <button
+                  onClick={() => router.push('/competitions/create')}
+                  className="w-full text-left p-3 rounded-md bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                >
+                  <div className="font-medium text-green-900 dark:text-green-100">Create Competition</div>
+                  <div className="text-sm text-green-700 dark:text-green-300">Start a new competition</div>
+                </button>
+                <button
+                  onClick={() => router.push('/competitions')}
+                  className="w-full text-left p-3 rounded-md bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                >
+                  <div className="font-medium text-purple-900 dark:text-purple-100">My Competitions</div>
+                  <div className="text-sm text-purple-700 dark:text-purple-300">View and manage competitions</div>
+                </button>
+                <button
                   onClick={() => alert('Settings coming soon!')}
                   className="w-full text-left p-3 rounded-md bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 transition-colors"
                 >

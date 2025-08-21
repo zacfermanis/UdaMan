@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CompetitionService } from '@/lib/competition/competition-service';
+
 import { CreateCompetitionData, CompetitionStatus } from '@/types/competition';
 
 interface CompetitionFormProps {
@@ -56,7 +56,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
     }
   });
 
-  const competitionService = new CompetitionService();
+
 
   const validateStep = useCallback((step: number): boolean => {
     const newErrors: FormErrors = {};
@@ -155,7 +155,21 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
         settings: formData.settings
       };
 
-      const competition = await competitionService.createCompetition(competitionData);
+      const response = await fetch('/api/competitions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(competitionData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create competition');
+      }
+
+      const competition = await response.json();
       
       if (onSuccess) {
         onSuccess(competition.id);
@@ -168,7 +182,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, currentStep, validateStep, onSuccess, router, competitionService]);
+  }, [formData, currentStep, validateStep, onSuccess, router]);
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -184,7 +198,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 ${
                   errors.name ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Enter competition name"
@@ -202,7 +216,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 ${
                   errors.description ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Describe your competition (optional)"
@@ -228,7 +242,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
                 id="startDate"
                 value={formData.startDate}
                 onChange={(e) => handleInputChange('startDate', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 ${
                   errors.startDate ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
@@ -244,7 +258,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
                 id="endDate"
                 value={formData.endDate}
                 onChange={(e) => handleInputChange('endDate', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 ${
                   errors.endDate ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
@@ -259,7 +273,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
                 id="status"
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value as CompetitionStatus)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
               >
                 <option value="draft">Draft</option>
                 <option value="active">Active</option>
@@ -323,7 +337,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
                 id="scoringSystem"
                 value={formData.settings.scoringSystem}
                 onChange={(e) => handleSettingsChange('scoringSystem', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
               >
                 <option value="position_based">Position-based scoring</option>
                 <option value="custom">Custom scoring</option>
@@ -339,7 +353,7 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
                 value={formData.settings.tieBreakingRules}
                 onChange={(e) => handleSettingsChange('tieBreakingRules', e.target.value)}
                 rows={3}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 ${
                   errors.tieBreakingRules ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Describe how ties will be broken (optional)"
@@ -462,10 +476,10 @@ export default function CompetitionForm({ onSuccess, onCancel }: CompetitionForm
         </nav>
       </div>
 
-      {/* Step Content */}
-      <div className="bg-white shadow rounded-lg p-6">
-        {renderStepContent()}
-      </div>
+             {/* Step Content */}
+       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+         {renderStepContent()}
+       </div>
 
       {/* Navigation Buttons */}
       <div className="mt-6 flex justify-between">

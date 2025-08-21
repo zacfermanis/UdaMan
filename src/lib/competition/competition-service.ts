@@ -421,6 +421,143 @@ export class CompetitionService {
   }
 
   /**
+   * Get competition by ID (without user access check)
+   */
+  async getCompetitionById(competitionId: string): Promise<Competition | null> {
+    try {
+      const { data: competition, error } = await this.supabase
+        .from('competitions')
+        .select('*')
+        .eq('id', competitionId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw new Error(`Failed to fetch competition: ${error.message}`);
+      }
+
+      return this.mapDatabaseCompetition(competition);
+    } catch (error) {
+      throw new Error(`Failed to get competition: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Check if user has access to competition
+   */
+  async userHasAccessToCompetition(
+    userId: string, 
+    competitionId: string, 
+    requiredRole?: 'creator' | 'admin' | 'participant' | 'spectator'
+  ): Promise<boolean> {
+    try {
+      let query = this.supabase
+        .from('participants')
+        .select('role')
+        .eq('competition_id', competitionId)
+        .eq('user_id', userId);
+
+      if (requiredRole) {
+        // Define role hierarchy
+        const roleHierarchy = {
+          'creator': ['creator'],
+          'admin': ['creator', 'admin'],
+          'participant': ['creator', 'admin', 'participant'],
+          'spectator': ['creator', 'admin', 'participant', 'spectator']
+        };
+
+        const allowedRoles = roleHierarchy[requiredRole];
+        query = query.in('role', allowedRoles);
+      }
+
+      const { data, error } = await query.single();
+
+      if (error || !data) {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error checking competition access:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update competition
+   */
+  async updateCompetition(competitionId: string, data: Partial<UpdateCompetitionData>): Promise<Competition> {
+    try {
+      // Validate competition data
+      const validationErrors = this.validateCompetitionData(data as CreateCompetitionData);
+      if (validationErrors.length > 0) {
+        throw new Error(`Validation failed: ${validationErrors.map(e => e.message).join(', ')}`);
+      }
+
+      // Prepare update data
+      const updateData: any = {};
+      
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.start_date !== undefined) updateData.start_date = data.start_date.toISOString();
+      if (data.end_date !== undefined) updateData.end_date = data.end_date.toISOString();
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.settings !== undefined) updateData.settings = data.settings;
+      if (data.metadata !== undefined) updateData.metadata = data.metadata;
+
+      updateData.updated_at = new Date().toISOString();
+
+      // Update competition
+      const { data: competition, error } = await this.supabase
+        .from('competitions')
+        .update(updateData)
+        .eq('id', competitionId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to update competition: ${error.message}`);
+      }
+
+      return this.mapDatabaseCompetition(competition);
+    } catch (error) {
+      throw new Error(`Competition update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Delete competition
+   */
+  async deleteCompetition(competitionId: string): Promise<void> {
+    try {
+      // Delete related data first (participants, events)
+      await this.supabase
+        .from('participants')
+        .delete()
+        .eq('competition_id', competitionId);
+
+      await this.supabase
+        .from('events')
+        .delete()
+        .eq('competition_id', competitionId);
+
+      // Delete competition
+      const { error } = await this.supabase
+        .from('competitions')
+        .delete()
+        .eq('id', competitionId);
+
+      if (error) {
+        throw new Error(`Failed to delete competition: ${error.message}`);
+      }
+    } catch (error) {
+      throw new Error(`Competition deletion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Map database competition to Competition interface
    */
   private mapDatabaseCompetition(dbCompetition: any): Competition {
