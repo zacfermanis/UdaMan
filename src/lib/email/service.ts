@@ -16,6 +16,16 @@ interface SendPasswordResetEmailParams {
   from?: string
 }
 
+interface SendCompetitionInvitationParams {
+  to: string
+  competitionName: string
+  competitionDescription: string
+  role: string
+  customMessage?: string
+  invitationUrl: string
+  from?: string
+}
+
 export class EmailService {
   private static readonly DEFAULT_FROM = 'onboarding@resend.dev'
   private static readonly APP_NAME = 'Udaman'
@@ -132,6 +142,59 @@ export class EmailService {
       return data
     } catch (error) {
       console.error('Error sending simple email:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Send competition invitation email
+   */
+  static async sendCompetitionInvitation({
+    to,
+    competitionName,
+    competitionDescription,
+    role,
+    customMessage,
+    invitationUrl,
+    from = this.DEFAULT_FROM
+  }: SendCompetitionInvitationParams) {
+    try {
+      const subject = `You're invited to join ${competitionName} - ${this.APP_NAME}`;
+      
+      const emailText = `
+Hello!
+
+You've been invited to join the competition "${competitionName}" as a ${role}.
+
+${competitionDescription ? `Competition Description: ${competitionDescription}` : ''}
+
+${customMessage ? `Personal Message: ${customMessage}` : ''}
+
+To accept this invitation, please click the following link:
+${invitationUrl}
+
+If you have any questions, please contact the competition organizer.
+
+Best regards,
+The ${this.APP_NAME} Team
+      `.trim();
+
+      const { data, error } = await resend.emails.send({
+        from,
+        to: [to],
+        subject,
+        text: emailText,
+      })
+
+      if (error) {
+        console.error('Failed to send competition invitation email:', error)
+        throw new Error(`Failed to send competition invitation email: ${error.message}`)
+      }
+
+      console.log('Competition invitation email sent successfully:', data)
+      return data
+    } catch (error) {
+      console.error('Error sending competition invitation email:', error)
       throw error
     }
   }

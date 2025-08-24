@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/config';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   Competition, 
   CreateCompetitionData, 
@@ -11,7 +11,7 @@ import {
 } from '@/types/competition';
 
 export class CompetitionService {
-  private supabase = createServerClient();
+  constructor(private supabase: SupabaseClient) {}
 
   /**
    * Create a new competition

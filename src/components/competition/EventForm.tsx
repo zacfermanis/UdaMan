@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { EventService } from '@/lib/competition/event-service';
-import { EventTypeService } from '@/lib/competition/event-type-service';
 import { 
   CreateEventData, 
   UpdateEventData, 
@@ -107,8 +105,7 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
     status: event?.status || 'scheduled'
   });
 
-  const eventService = new EventService();
-  const eventTypeService = new EventTypeService();
+
 
   // Load event type suggestions on component mount
   useEffect(() => {
@@ -118,14 +115,23 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
   const loadEventTypeSuggestions = useCallback(async () => {
     setIsLoadingSuggestions(true);
     try {
-      const suggestions = await eventTypeService.getEventTypeSuggestions('', 20);
-      setEventTypeSuggestions(suggestions);
+      const response = await fetch('/api/event-types?limit=20', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load event type suggestions');
+      }
+
+      const data = await response.json();
+      setEventTypeSuggestions(data.suggestions);
     } catch (error) {
       console.error('Failed to load event type suggestions:', error);
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [eventTypeService]);
+  }, []);
 
   const searchEventTypes = useCallback(async (searchTerm: string) => {
     if (searchTerm.length < 2) {
@@ -135,15 +141,24 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
 
     setIsLoadingSuggestions(true);
     try {
-      const results = await eventTypeService.searchEventTypes('', searchTerm, true);
-      setEventTypeSuggestions(results);
+      const response = await fetch(`/api/event-types?search=${encodeURIComponent(searchTerm)}&includePredefined=true`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to search event types');
+      }
+
+      const data = await response.json();
+      setEventTypeSuggestions(data.suggestions);
       setShowEventTypeSuggestions(true);
     } catch (error) {
       console.error('Failed to search event types:', error);
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [eventTypeService]);
+  }, []);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
@@ -261,9 +276,8 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
     setFormData(prev => ({ ...prev, eventType }));
     setShowEventTypeSuggestions(false);
     
-    // Increment usage count for the selected event type
-    eventTypeService.incrementUsageCount(eventType, '').catch(console.error);
-  }, [eventTypeService]);
+    // Note: Usage count increment is now handled server-side when creating events
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) {
@@ -286,15 +300,37 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
         status: formData.status
       };
 
-      let createdEvent: Event;
+      let response: Response;
       
       if (event) {
         // Update existing event
-        createdEvent = await eventService.updateEvent(event.id, eventData as UpdateEventData);
+        response = await fetch(`/api/competitions/${competitionId}/events/${event.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(eventData),
+        });
       } else {
         // Create new event
-        createdEvent = await eventService.createEvent(eventData as CreateEventData, competitionId);
+        response = await fetch(`/api/competitions/${competitionId}/events`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(eventData),
+        });
       }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save event');
+      }
+
+      const data = await response.json();
+      const createdEvent = data.event;
       
       if (onSuccess) {
         onSuccess(createdEvent.id);
@@ -305,7 +341,7 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, event, eventService, competitionId, onSuccess]);
+  }, [formData, validateForm, event, competitionId, onSuccess]);
 
   const renderEventTypeSelector = () => (
     <div className="relative">

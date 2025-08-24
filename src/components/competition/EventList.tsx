@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { EventService } from '@/lib/competition/event-service';
-import { PermissionService } from '@/lib/competition/permission-service';
 import { 
   Event, 
   EventStatus,
@@ -65,14 +63,11 @@ export default function EventList({
   const [draggedItem, setDraggedItem] = useState<DragItem | null>(null);
   const [isReordering, setIsReordering] = useState(false);
 
-  const eventService = new EventService();
-  const permissionService = new PermissionService();
   const dragRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Load events on component mount
   useEffect(() => {
     loadEvents();
-    loadPermissions();
   }, [competitionId]);
 
   // Update filtered events when events, search, or filters change
@@ -83,24 +78,27 @@ export default function EventList({
   const loadEvents = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await eventService.getCompetitionEvents(competitionId);
-      setEvents(response.events);
+      const response = await fetch(`/api/competitions/${competitionId}/events`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load events');
+      }
+
+      const data = await response.json();
+      setEvents(data.events);
+      setUserPermissions(data.permissions);
     } catch (error) {
       console.error('Failed to load events:', error);
       setErrors({ load: 'Failed to load events' });
     } finally {
       setIsLoading(false);
     }
-  }, [competitionId, eventService]);
+  }, [competitionId]);
 
-  const loadPermissions = useCallback(async () => {
-    try {
-      const permissions = await permissionService.getUserPermissions(currentUserId, competitionId);
-      setUserPermissions(permissions);
-    } catch (error) {
-      console.error('Failed to load permissions:', error);
-    }
-  }, [currentUserId, competitionId, permissionService]);
+
 
   const filterAndSortEvents = useCallback(() => {
     let filtered = [...events];
@@ -215,8 +213,19 @@ export default function EventList({
         onReorderEvents(newOrder.map(e => e.id));
       }
 
-      // Update order in database
-      await eventService.updateEventOrder(competitionId, newOrder.map(e => e.id), currentUserId);
+      // Update order in database via API
+      const reorderResponse = await fetch(`/api/competitions/${competitionId}/events/reorder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ eventIds: newOrder.map(e => e.id) }),
+      });
+
+      if (!reorderResponse.ok) {
+        throw new Error('Failed to reorder events');
+      }
 
     } catch (error) {
       console.error('Failed to reorder events:', error);
@@ -227,7 +236,7 @@ export default function EventList({
       setIsReordering(false);
       setDraggedItem(null);
     }
-  }, [draggedItem, userPermissions.can_manage_events, filteredEvents, onReorderEvents, eventService, competitionId, currentUserId, loadEvents]);
+  }, [draggedItem, userPermissions.can_manage_events, filteredEvents, onReorderEvents, competitionId, loadEvents]);
 
   const handleDragEnd = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -241,18 +250,26 @@ export default function EventList({
     if (!userPermissions.can_manage_events) return;
 
     try {
-      const updatedEvent = await eventService.updateEvent(
-        eventId,
-        { status: newStatus },
-        currentUserId
-      );
+      const response = await fetch(`/api/competitions/${competitionId}/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
+      });
 
-      setEvents(prev => prev.map(e => e.id === eventId ? updatedEvent : e));
+      if (!response.ok) {
+        throw new Error('Failed to update event status');
+      }
+
+      const data = await response.json();
+      setEvents(prev => prev.map(e => e.id === eventId ? data.event : e));
     } catch (error) {
       console.error('Failed to update event status:', error);
       setErrors({ status: 'Failed to update event status' });
     }
-  }, [userPermissions.can_manage_events, eventService, currentUserId]);
+  }, [userPermissions.can_manage_events, competitionId]);
 
   const handleDeleteEvent = useCallback(async (eventId: string) => {
     if (!userPermissions.can_delete_events) return;
@@ -262,7 +279,15 @@ export default function EventList({
     }
 
     try {
-      await eventService.deleteEvent(eventId, currentUserId);
+      const response = await fetch(`/api/competitions/${competitionId}/events/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete event');
+      }
+
       setEvents(prev => prev.filter(e => e.id !== eventId));
       
       if (onDeleteEvent) {
@@ -272,7 +297,7 @@ export default function EventList({
       console.error('Failed to delete event:', error);
       setErrors({ delete: 'Failed to delete event' });
     }
-  }, [userPermissions.can_delete_events, eventService, currentUserId, onDeleteEvent]);
+  }, [userPermissions.can_delete_events, competitionId, onDeleteEvent]);
 
   const formatDate = useCallback((date: Date | string) => {
     return new Date(date).toLocaleDateString('en-US', {

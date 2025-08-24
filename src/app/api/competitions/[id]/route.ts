@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CompetitionService } from '@/lib/competition/competition-service';
 import { validateSession } from '@/lib/auth/session';
+import { createServerClient } from '@/lib/supabase/config';
 
 export async function GET(
   request: NextRequest,
@@ -21,7 +22,8 @@ export async function GET(
     }
 
     const { id: competitionId } = await params;
-    const competitionService = new CompetitionService();
+    const supabase = createServerClient();
+    const competitionService = new CompetitionService(supabase);
     
     // Get the competition and check if user has access
     const competition = await competitionService.getCompetitionById(competitionId);
@@ -71,7 +73,8 @@ export async function PUT(
     const { id: competitionId } = await params;
     const body = await request.json();
     
-    const competitionService = new CompetitionService();
+    const supabase = createServerClient();
+    const competitionService = new CompetitionService(supabase);
     
     // Check if user has permission to update this competition
     const hasAccess = await competitionService.userHasAccessToCompetition(
@@ -125,7 +128,8 @@ export async function DELETE(
     }
 
     const { id: competitionId } = await params;
-    const competitionService = new CompetitionService();
+    const supabase = createServerClient();
+    const competitionService = new CompetitionService(supabase);
     
     // Check if user has permission to delete this competition (creator only)
     const hasAccess = await competitionService.userHasAccessToCompetition(

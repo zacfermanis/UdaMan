@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CompetitionService } from '@/lib/competition/competition-service';
+import { EventTypeService } from '@/lib/competition/event-type-service';
 import { validateSession } from '@/lib/auth/session';
 import { createServerClient } from '@/lib/supabase/config';
 
@@ -18,15 +18,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createServerClient();
-    const competitionService = new CompetitionService(supabase);
-    const response = await competitionService.getUserCompetitions(sessionResult.session.userId);
+    const { searchParams } = new URL(request.url);
+    const searchTerm = searchParams.get('search') || '';
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const includePredefined = searchParams.get('includePredefined') !== 'false';
 
-    return NextResponse.json(response);
+    const supabase = createServerClient();
+    const eventTypeService = new EventTypeService(supabase);
+    
+    if (searchTerm) {
+      // Search event types
+      const results = await eventTypeService.searchEventTypes(sessionResult.session.userId, searchTerm, includePredefined);
+      return NextResponse.json({
+        success: true,
+        suggestions: results
+      });
+    } else {
+      // Get suggestions
+      const suggestions = await eventTypeService.getEventTypeSuggestions(sessionResult.session.userId, '', limit);
+      return NextResponse.json({
+        success: true,
+        suggestions
+      });
+    }
+
   } catch (error) {
-    console.error('Error fetching competitions:', error);
+    console.error('Error fetching event types:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch competitions' },
+      { error: 'Failed to fetch event types' },
       { status: 500 }
     );
   }
@@ -48,23 +67,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
-    // Convert string dates to Date objects
-    const competitionData = {
-      ...body,
-      start_date: new Date(body.start_date),
-      end_date: new Date(body.end_date)
-    };
-    
     const supabase = createServerClient();
-    const competitionService = new CompetitionService(supabase);
-    const competition = await competitionService.createCompetition(competitionData, sessionResult.session.userId);
+    const eventTypeService = new EventTypeService(supabase);
+    
+    const eventType = await eventTypeService.createEventType(body, sessionResult.session.userId);
 
-    return NextResponse.json(competition, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      eventType
+    });
+
   } catch (error) {
-    console.error('Error creating competition:', error);
+    console.error('Error creating event type:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create competition' },
+      { error: error instanceof Error ? error.message : 'Failed to create event type' },
       { status: 500 }
     );
   }

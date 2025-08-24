@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/config';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   ParticipantRole, 
   PermissionMatrix, 
@@ -8,7 +8,7 @@ import {
 } from '@/types/competition';
 
 export class PermissionService {
-  private supabase = createServerClient();
+  constructor(private supabase: SupabaseClient) {}
 
   // Permission matrix defining what each role can do
   private readonly permissionMatrix: PermissionMatrix = {

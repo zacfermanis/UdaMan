@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/config';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   Event, 
   CreateEventData, 
@@ -11,7 +11,7 @@ import {
 } from '@/types/competition';
 
 export class EventService {
-  private supabase = createServerClient();
+  constructor(private supabase: SupabaseClient) {}
 
   /**
    * Create a new event
@@ -92,6 +92,36 @@ export class EventService {
       if (error) {
         if (error.code === 'PGRST116') {
           throw new Error('Event not found or access denied');
+        }
+        throw new Error(`Failed to fetch event: ${error.message}`);
+      }
+
+      return this.mapDatabaseEvent(event);
+    } catch (error) {
+      throw new Error(`Failed to get event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get event by ID (alias for getEvent for consistency)
+   */
+  async getEventById(id: string, userId?: string): Promise<Event> {
+    try {
+      // If userId is provided, use the secure getEvent method
+      if (userId) {
+        return await this.getEvent(id, userId);
+      }
+
+      // Otherwise, fetch without user validation (for admin/internal use)
+      const { data: event, error } = await this.supabase
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('Event not found');
         }
         throw new Error(`Failed to fetch event: ${error.message}`);
       }

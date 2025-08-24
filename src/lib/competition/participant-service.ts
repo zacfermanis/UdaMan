@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/config';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { EmailService } from '@/lib/email/service';
 import { 
   Participant, 
@@ -11,8 +11,7 @@ import {
 } from '@/types/competition';
 
 export class ParticipantService {
-  private supabase = createServerClient();
-  private emailService = new EmailService();
+  constructor(private supabase: SupabaseClient) {}
 
   /**
    * Invite participants to a competition
@@ -515,7 +514,7 @@ export class ParticipantService {
     customMessage?: string
   ): Promise<void> {
     try {
-      await this.emailService.sendCompetitionInvitation({
+      await EmailService.sendCompetitionInvitation({
         to: email,
         competitionName: competition.name,
         competitionDescription: competition.description,

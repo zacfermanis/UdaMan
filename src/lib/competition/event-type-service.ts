@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/config';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   UserEventType, 
   CreateEventTypeData, 
@@ -11,7 +11,7 @@ import {
 } from '@/types/competition';
 
 export class EventTypeService {
-  private supabase = createServerClient();
+  constructor(private supabase: SupabaseClient) {}
 
   // Predefined event type categories with popular types
   private readonly predefinedCategories: Record<EventTypeCategory, string[]> = {
