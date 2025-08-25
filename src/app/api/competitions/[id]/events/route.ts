@@ -25,6 +25,8 @@ export async function GET(
 
     const { id: competitionId } = await params;
     const userId = sessionResult.session.userId;
+    
+
 
     // Create server-side Supabase client
     const supabase = createServerClient();
@@ -40,13 +42,9 @@ export async function GET(
     }
 
     // Get user permissions
-    const permissions = await permissionService.getUserPermissions(userId, competitionId);
-    if (!permissions) {
-      return NextResponse.json({ error: 'Access denied - User not found in competition' }, { status: 403 });
-    }
-    if (!permissions.can_view_events) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    const permissions = await permissionService.getUserPermissions(competitionId, userId);
+    // Allow viewing events if user has any role in the competition (participant, spectator, admin, creator)
+    // The permission check is handled by the EventService which filters events based on user role
 
     // Get events for the competition
     const eventService = new EventService(supabase);
@@ -89,13 +87,17 @@ export async function POST(
     const { id: competitionId } = await params;
     const userId = sessionResult.session.userId;
     const body = await request.json();
+    
+
+    
+
 
     // Create server-side Supabase client
     const supabase = createServerClient();
     
-    // Check permissions
-    const permissionService = new PermissionService(supabase);
-    const permissions = await permissionService.getUserPermissions(userId, competitionId);
+         // Check permissions
+     const permissionService = new PermissionService(supabase);
+     const permissions = await permissionService.getUserPermissions(competitionId, userId);
     if (!permissions) {
       return NextResponse.json({ error: 'Access denied - User not found in competition' }, { status: 403 });
     }

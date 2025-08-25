@@ -81,7 +81,7 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
       address: '',
       city: '',
       state: '',
-      zipCode: '',
+      zip_code: '',
       country: '',
       coordinates: null
     },
@@ -90,18 +90,18 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
     maxParticipants: event?.max_participants || 16,
     rules: event?.rules || '',
     requirements: event?.requirements || '',
-    scoringConfig: event?.scoring_config || {
-      type: 'position_based',
-      points: {
-        first: 10,
-        second: 8,
-        third: 6,
-        fourth: 4,
-        fifth: 2,
-        participation: 1
-      },
-      customRules: ''
-    },
+         scoringConfig: event?.scoring_config || {
+       type: 'position_based',
+       rules: {
+         first: 10,
+         second: 8,
+         third: 6,
+         fourth: 4,
+         fifth: 2,
+         participation: 1
+       },
+       tie_breaker: 'total_points'
+     },
     status: event?.status || 'scheduled'
   });
 
@@ -259,18 +259,18 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
     }));
   }, []);
 
-  const handlePointsChange = useCallback((position: string, value: number) => {
-    setFormData(prev => ({
-      ...prev,
-      scoringConfig: {
-        ...prev.scoringConfig,
-        points: {
-          ...prev.scoringConfig.points,
-          [position]: value
-        }
-      }
-    }));
-  }, []);
+     const handlePointsChange = useCallback((position: string, value: number) => {
+     setFormData(prev => ({
+       ...prev,
+       scoringConfig: {
+         ...prev.scoringConfig,
+         rules: {
+           ...prev.scoringConfig.rules,
+           [position]: value
+         }
+       }
+     }));
+   }, []);
 
   const handleEventTypeSelect = useCallback((eventType: string) => {
     setFormData(prev => ({ ...prev, eventType }));
@@ -299,6 +299,8 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
         scoring_config: formData.scoringConfig,
         status: formData.status
       };
+
+
 
       let response: Response;
       
@@ -441,14 +443,14 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
         </div>
 
         <div>
-          <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="zip_code" className="block text-sm font-medium text-gray-700 mb-2">
             ZIP/Postal Code
           </label>
           <input
             type="text"
-            id="zipCode"
-            value={formData.location.zipCode}
-            onChange={(e) => handleLocationChange('zipCode', e.target.value)}
+            id="zip_code"
+            value={formData.location.zip_code}
+            onChange={(e) => handleLocationChange('zip_code', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="ZIP Code"
           />
@@ -490,41 +492,41 @@ export default function EventForm({ competitionId, event, onSuccess, onCancel }:
         </select>
       </div>
 
-      {formData.scoringConfig.type === 'position_based' && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {Object.entries(formData.scoringConfig.points).map(([position, points]) => (
-            <div key={position}>
-              <label htmlFor={`points-${position}`} className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                {position} Place
-              </label>
-              <input
-                type="number"
-                id={`points-${position}`}
-                value={points}
-                onChange={(e) => handlePointsChange(position, parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
-              />
-            </div>
-          ))}
-        </div>
-      )}
+             {formData.scoringConfig.type === 'position_based' && (
+         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+           {Object.entries(formData.scoringConfig.rules).map(([position, points]) => (
+             <div key={position}>
+               <label htmlFor={`points-${position}`} className="block text-sm font-medium text-gray-700 mb-2 capitalize">
+                 {position} Place
+               </label>
+               <input
+                 type="number"
+                 id={`points-${position}`}
+                 value={points}
+                 onChange={(e) => handlePointsChange(position, parseInt(e.target.value) || 0)}
+                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                 min="0"
+               />
+             </div>
+           ))}
+         </div>
+       )}
 
-      {formData.scoringConfig.type === 'custom' && (
-        <div>
-          <label htmlFor="customRules" className="block text-sm font-medium text-gray-700 mb-2">
-            Custom Scoring Rules
-          </label>
-          <textarea
-            id="customRules"
-            value={formData.scoringConfig.customRules}
-            onChange={(e) => handleScoringConfigChange('customRules', e.target.value)}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Describe your custom scoring rules..."
-          />
-        </div>
-      )}
+             {formData.scoringConfig.type === 'custom' && (
+         <div>
+           <label htmlFor="customRules" className="block text-sm font-medium text-gray-700 mb-2">
+             Custom Scoring Rules
+           </label>
+           <textarea
+             id="customRules"
+             value={formData.scoringConfig.rules.customRules || ''}
+             onChange={(e) => handleScoringConfigChange('rules', { ...formData.scoringConfig.rules, customRules: e.target.value })}
+             rows={4}
+             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+             placeholder="Describe your custom scoring rules..."
+           />
+         </div>
+       )}
     </div>
   );
 

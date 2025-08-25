@@ -198,6 +198,8 @@ export class PermissionService {
     userId: string
   ): Promise<PermissionMatrix[ParticipantRole] | null> {
     try {
+      console.log('Debug - PermissionService.getUserPermissions called:', { competitionId, userId });
+      
       const { data: participant, error } = await this.supabase
         .from('participants')
         .select('role, permissions')
@@ -205,7 +207,10 @@ export class PermissionService {
         .eq('user_id', userId)
         .single();
 
+      console.log('Debug - Participant query result:', { participant, error: error?.message });
+
       if (error || !participant) {
+        console.log('Debug - No participant found, returning null');
         return null;
       }
 

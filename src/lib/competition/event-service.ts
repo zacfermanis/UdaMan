@@ -36,21 +36,21 @@ export class EventService {
         throw new Error('This event conflicts with an existing event schedule');
       }
 
-      // Prepare event data
-      const eventData = {
-        competition_id: competitionId,
-        name: data.name,
-        description: data.description || null,
-        event_type: data.event_type,
-        location: data.location,
-        scheduled_date: data.scheduled_date.toISOString(),
-        duration_minutes: data.duration_minutes,
-        max_participants: data.max_participants || null,
-        rules: data.rules || null,
-        requirements: data.requirements || null,
-        scoring_config: data.scoring_config || this.getDefaultScoringConfig(),
-        status: 'scheduled' as const
-      };
+             // Prepare event data
+       const eventData = {
+         competition_id: competitionId,
+         name: data.name,
+         description: data.description || null,
+         event_type: data.event_type,
+         location: data.location,
+         scheduled_date: (data.scheduled_date instanceof Date ? data.scheduled_date : new Date(data.scheduled_date)).toISOString(),
+         duration_minutes: data.duration_minutes,
+         max_participants: data.max_participants || null,
+         rules: data.rules || null,
+         requirements: data.requirements || null,
+         scoring_config: data.scoring_config || this.getDefaultScoringConfig(),
+         status: 'scheduled' as const
+       };
 
       // Insert event
       const { data: event, error } = await this.supabase
@@ -233,7 +233,7 @@ export class EventService {
       if (data.description !== undefined) updateData.description = data.description;
       if (data.event_type) updateData.event_type = data.event_type;
       if (data.location) updateData.location = data.location;
-      if (data.scheduled_date) updateData.scheduled_date = data.scheduled_date.toISOString();
+             if (data.scheduled_date) updateData.scheduled_date = (data.scheduled_date instanceof Date ? data.scheduled_date : new Date(data.scheduled_date)).toISOString();
       if (data.duration_minutes) updateData.duration_minutes = data.duration_minutes;
       if (data.max_participants !== undefined) updateData.max_participants = data.max_participants;
       if (data.rules !== undefined) updateData.rules = data.rules;
@@ -359,11 +359,14 @@ export class EventService {
       errors.push({ field: 'event_type', message: 'Event type is required' });
     }
 
-    if (!data.scheduled_date) {
-      errors.push({ field: 'scheduled_date', message: 'Scheduled date is required' });
-    } else if (data.scheduled_date < new Date()) {
-      errors.push({ field: 'scheduled_date', message: 'Scheduled date cannot be in the past' });
-    }
+         if (!data.scheduled_date) {
+       errors.push({ field: 'scheduled_date', message: 'Scheduled date is required' });
+     } else {
+       const scheduledDate = data.scheduled_date instanceof Date ? data.scheduled_date : new Date(data.scheduled_date);
+       if (scheduledDate < new Date()) {
+         errors.push({ field: 'scheduled_date', message: 'Scheduled date cannot be in the past' });
+       }
+     }
 
     if (!data.duration_minutes || data.duration_minutes <= 0) {
       errors.push({ field: 'duration_minutes', message: 'Duration must be greater than 0' });
@@ -402,9 +405,12 @@ export class EventService {
       }
     }
 
-    if (data.scheduled_date && data.scheduled_date < new Date()) {
-      errors.push({ field: 'scheduled_date', message: 'Scheduled date cannot be in the past' });
-    }
+         if (data.scheduled_date) {
+       const scheduledDate = data.scheduled_date instanceof Date ? data.scheduled_date : new Date(data.scheduled_date);
+       if (scheduledDate < new Date()) {
+         errors.push({ field: 'scheduled_date', message: 'Scheduled date cannot be in the past' });
+       }
+     }
 
     if (data.duration_minutes !== undefined) {
       if (data.duration_minutes <= 0) {
@@ -437,11 +443,11 @@ export class EventService {
    */
   private async checkSchedulingConflict(
     competitionId: string, 
-    scheduledDate: Date, 
+    scheduledDate: Date | string, 
     durationMinutes: number, 
     excludeEventId?: string
   ): Promise<boolean> {
-    const startTime = scheduledDate;
+    const startTime = scheduledDate instanceof Date ? scheduledDate : new Date(scheduledDate);
     const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 
     let query = this.supabase
@@ -473,14 +479,45 @@ export class EventService {
    * Update event type usage count
    */
   private async updateEventTypeUsage(eventType: string, userId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('user_event_types')
-      .update({ usage_count: this.supabase.sql`usage_count + 1` })
-      .eq('user_id', userId)
-      .eq('name', eventType);
+    try {
+      // First get the current usage count
+      const { data: currentType, error: fetchError } = await this.supabase
+        .from('user_event_types')
+        .select('usage_count')
+        .eq('user_id', userId)
+        .eq('name', eventType)
+        .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows affected
-      console.warn(`Failed to update event type usage: ${error.message}`);
+      if (fetchError) {
+        // Event type doesn't exist for this user, create it
+        const { error: insertError } = await this.supabase
+          .from('user_event_types')
+          .insert({
+            user_id: userId,
+            name: eventType,
+            description: '',
+            category: 'custom',
+            usage_count: 1
+          });
+
+        if (insertError) {
+          console.warn(`Failed to create event type usage: ${insertError.message}`);
+        }
+        return;
+      }
+
+      // Update the usage count
+      const { error: updateError } = await this.supabase
+        .from('user_event_types')
+        .update({ usage_count: (currentType.usage_count || 0) + 1 })
+        .eq('user_id', userId)
+        .eq('name', eventType);
+
+      if (updateError) {
+        console.warn(`Failed to update event type usage: ${updateError.message}`);
+      }
+    } catch (error) {
+      console.warn(`Error updating event type usage: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

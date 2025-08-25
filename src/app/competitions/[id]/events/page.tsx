@@ -194,11 +194,11 @@ export default function EventManagementPage({}: EventManagementPageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Loading event management...</span>
+            <span className="ml-3 text-gray-600 dark:text-gray-400">Loading event management...</span>
           </div>
         </div>
       </div>
@@ -207,10 +207,10 @@ export default function EventManagementPage({}: EventManagementPageProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             <button
               onClick={loadCompetitionData}
               className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -241,23 +241,9 @@ export default function EventManagementPage({}: EventManagementPageProps) {
     );
   }
 
-  if (!userPermissions.can_view_events) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">You don't have permission to view events for this competition.</p>
-            <button
-              onClick={handleBackToCompetition}
-              className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              Back to Competition
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Note: We don't check for can_view_events permission here since it doesn't exist in the permission matrix
+  // All participants, spectators, admins, and creators should be able to view events
+  // The EventService will handle filtering based on user role
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

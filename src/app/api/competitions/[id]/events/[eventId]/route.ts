@@ -30,13 +30,12 @@ export async function GET(
     
     // Check permissions
     const permissionService = new PermissionService(supabase);
-    const permissions = await permissionService.getUserPermissions(userId, competitionId);
+    const permissions = await permissionService.getUserPermissions(competitionId, userId);
     if (!permissions) {
       return NextResponse.json({ error: 'Access denied - User not found in competition' }, { status: 403 });
     }
-    if (!permissions.can_view_events) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    // Allow viewing individual events if user has any role in the competition
+    // The EventService will handle filtering based on user role
 
     // Get event
     const eventService = new EventService(supabase);
@@ -83,7 +82,7 @@ export async function PUT(
     
     // Check permissions
     const permissionService = new PermissionService(supabase);
-    const permissions = await permissionService.getUserPermissions(userId, competitionId);
+    const permissions = await permissionService.getUserPermissions(competitionId, userId);
     if (!permissions) {
       return NextResponse.json({ error: 'Access denied - User not found in competition' }, { status: 403 });
     }
@@ -135,7 +134,7 @@ export async function DELETE(
     
     // Check permissions
     const permissionService = new PermissionService(supabase);
-    const permissions = await permissionService.getUserPermissions(userId, competitionId);
+    const permissions = await permissionService.getUserPermissions(competitionId, userId);
     if (!permissions) {
       return NextResponse.json({ error: 'Access denied - User not found in competition' }, { status: 403 });
     }
