@@ -63,6 +63,7 @@ export default function EventManagementPage({}: EventManagementPageProps) {
       // In a real implementation, you might want a separate API endpoint for competition details
       setCompetition({
         id: competitionId,
+        creator_id: '', // This should come from a proper competition API
         name: `Competition ${competitionId}`, // This should come from a proper competition API
         description: '',
         start_date: new Date(),
@@ -71,10 +72,10 @@ export default function EventManagementPage({}: EventManagementPageProps) {
         created_at: new Date(),
         updated_at: new Date(),
         settings: {
-          allowSpectators: true,
-          publicLeaderboard: true,
-          autoStartEvents: false,
-          scoringSystem: 'position_based'
+          allow_spectators: true,
+          public_leaderboard: true,
+          auto_start_events: false,
+          scoring_system: 'position_based'
         },
         metadata: {}
       });
@@ -225,10 +226,10 @@ export default function EventManagementPage({}: EventManagementPageProps) {
 
   if (!competition) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-            <p className="text-sm text-yellow-600">Competition not found</p>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
+            <p className="text-sm text-yellow-600 dark:text-yellow-400">Competition not found</p>
             <button
               onClick={() => router.push('/competitions')}
               className="mt-2 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
@@ -246,7 +247,7 @@ export default function EventManagementPage({}: EventManagementPageProps) {
   // The EventService will handle filtering based on user role
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -254,15 +255,15 @@ export default function EventManagementPage({}: EventManagementPageProps) {
             <div>
               <button
                 onClick={handleBackToCompetition}
-                className="flex items-center text-gray-600 hover:text-gray-900 mb-2"
+                className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-2"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back to Competition
               </button>
-              <h1 className="text-3xl font-bold text-gray-900">Event Management</h1>
-              <p className="text-gray-600 mt-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Event Management</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
                 Managing events for "{competition.name}"
               </p>
             </div>
@@ -283,7 +284,7 @@ export default function EventManagementPage({}: EventManagementPageProps) {
 
         {/* Main Content */}
         {showEventForm ? (
-          <div className="bg-white shadow rounded-lg">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
             <EventForm
               competitionId={competitionId}
               event={editingEvent || undefined}
@@ -292,7 +293,7 @@ export default function EventManagementPage({}: EventManagementPageProps) {
             />
           </div>
         ) : (
-          <div className="bg-white shadow rounded-lg">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
             <EventList
               competitionId={competitionId}
               currentUserId={currentUserId}
@@ -307,12 +308,12 @@ export default function EventManagementPage({}: EventManagementPageProps) {
 
         {/* Permission Info */}
         {!userPermissions.can_create_events && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
                 You can view events but don't have permission to create or manage them. 
                 Contact the competition creator for additional permissions.
               </p>
